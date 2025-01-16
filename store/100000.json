@@ -1,0 +1,58 @@
+{
+  "object_source": [
+    "[]/lib/store/asset.py",
+    "Asset",
+    null,
+    {
+      "action": {
+        "object_source": [
+          "[]/lib/store/actions/action_tests.py",
+          "TestDispatchedAction",
+          null,
+          {}
+        ]
+      },
+      "action_args": {},
+      "permissions": {
+        "object_source": [
+          "[]/lib/store/unix_permissions.py",
+          "UnixPermissions",
+          null,
+          {
+            "user": "root",
+            "group": "system",
+            "mode": {
+              "r:root": true,
+              "w:root": true,
+              "x:root": true,
+              "r:system": true,
+              "w:system": true,
+              "x:system": true,
+              "r:*": true,
+              "w:*": false,
+              "x:*": true
+            }
+          }
+        ]
+      },
+      "local_id": 100000,
+      "updater": "basic",
+      "meta": {},
+      "build_result": null,
+      "creation_date": {
+        "object_source": [
+          "[]/lib/persistence.py",
+          "DatetimeSerializer",
+          null,
+          {
+            "timestamp": 1735839126.353259
+          }
+        ]
+      },
+      "last_modification": null,
+      "last_build": null,
+      "dependencies": [],
+      "asset_help": null
+    }
+  ]
+}

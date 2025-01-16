@@ -1,0 +1,22 @@
+{
+    "idShort": "Segments",
+    "semanticId": {
+        "type": "ExternalReference",
+        "keys": [
+            {
+                "type": "GlobalReference",
+                "value": "https://admin-shell.io/idta/TimeSeries/Segments/1/1"
+            }
+        ]
+    },
+    "qualifiers": [
+        {
+            "type": "Cardinality",
+            "valueType": "xs:string",
+            "value": "One"
+        }
+    ],
+    "embeddedDataSpecifications": [],
+    "value": [],
+    "modelType": "SubmodelElementCollection"
+}

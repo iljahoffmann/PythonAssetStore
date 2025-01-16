@@ -1,0 +1,56 @@
+{
+  "": {
+    "object_source": [
+      "[]/lib/store/unix_permissions.py",
+      "UnixPermissions",
+      null,
+      {
+        "user": "root",
+        "group": "system",
+        "mode": {
+          "r:root": true,
+          "w:root": true,
+          "x:root": true,
+          "r:system": true,
+          "w:system": true,
+          "x:system": true,
+          "r:*": true,
+          "w:*": false,
+          "x:*": true
+        }
+      }
+    ]
+  },
+  "test": {
+    "test": 100000
+  },
+  "tmp": {
+    "": {
+      "object_source": [
+        "[]/lib/store/unix_permissions.py",
+        "UnixPermissions",
+        null,
+        {
+          "user": "root",
+          "group": "system",
+          "mode": {
+            "r:root": true,
+            "w:root": true,
+            "x:root": true,
+            "r:system": true,
+            "w:system": true,
+            "x:system": true,
+            "r:*": true,
+            "w:*": false,
+            "x:*": true,
+            "s:*": false,
+            "t:*": true
+          }
+        }
+      ]
+    }
+  },
+  "bin": {
+    "ls": 100001
+  }
+}

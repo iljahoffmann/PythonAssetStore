@@ -1,0 +1,17 @@
+# Ignore Vim swap files
+syntax: glob
+*.swp
+*.swo
+.*.swp
+.*.swo
+
+# Ignore Vim backup files
+*~
+
+# Ignore Vim undo files
+*.un~
+
+.idea
+.venv
+store
+/__pycache__$
