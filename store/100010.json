@@ -6,14 +6,14 @@
     {
       "action": {
         "object_source": [
-          "[]/lib/store/actions/json_format.py",
-          "JsonFormat",
+          "[]/app/actions/aas/instance/upload_instance.py",
+          "AASInstanceDownload",
           null,
           {}
         ]
       },
       "action_args": {
-        "path": "app.aas.instance.source.intern.54530"
+        "url": "http://localhost:8082/shells/aHR0cHM6Ly9hYXMubXVycmVsZWt0cm9uaWsuY29tLzU4ODQxL2Fhcy8wLzAvMjAxNzEyMzQ1Njc4OQ"
       },
       "permissions": {
         "object_source": [
@@ -47,7 +47,7 @@
           "DatetimeSerializer",
           null,
           {
-            "timestamp": 1737017238.663243
+            "timestamp": 1737032822.074183
           }
         ]
       },

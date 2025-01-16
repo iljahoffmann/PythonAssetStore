@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/AssetStore.iml" filepath="$PROJECT_DIR$/.idea/AssetStore.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/PythonAssetStore.iml" filepath="$PROJECT_DIR$/.idea/PythonAssetStore.iml" />
     </modules>
   </component>
 </project>

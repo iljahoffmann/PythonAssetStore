@@ -6,13 +6,15 @@
     {
       "action": {
         "object_source": [
-          "[]/app/actions/aas/instance/test.py",
-          "Test1",
+          "[]/app/actions/aas/instance/upload_instance.py",
+          "AASInstanceDownload",
           null,
           {}
         ]
       },
-      "action_args": {},
+      "action_args": {
+        "url": "http://localhost:8082/shells"
+      },
       "permissions": {
         "object_source": [
           "[]/lib/store/unix_permissions.py",
@@ -45,7 +47,7 @@
           "DatetimeSerializer",
           null,
           {
-            "timestamp": 1737017238.65973
+            "timestamp": 1737032822.064511
           }
         ]
       },

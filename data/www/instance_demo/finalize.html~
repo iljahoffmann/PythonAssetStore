@@ -124,13 +124,14 @@
 </header>
 
 <div class="content">
-<form action="/?asset=www.files&file=instance_demo/start.html" method="POST">
+<form action="/?asset=app.aas.instance.finalize" method="POST">
 	<div class="form-group">CO2 Footprints collected total: PLACEHOLDER_FOOTPRINT_TOTAL_</div>
-	<div class="form-group">Submit the total to the registry.</div>
+	<div class="form-group">Submit the total to the external server.</div>
 
 
 	<input type="hidden" name="product" value="PLACEHOLDER_PRODUCT_">
 	<input type="hidden" name="serial_number" value="PLACEHOLDER_SERIAL_NUMBER_">
+	<input type="hidden" name="footprint" value="PLACEHOLDER_FOOTPRINT_TOTAL_">
         <button type="submit">Submit</button>
 </form>
 </div>

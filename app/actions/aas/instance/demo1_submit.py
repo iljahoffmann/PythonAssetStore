@@ -13,14 +13,14 @@ from app.actions.aas.instance.upload_instance import AASInstancePut, AASInstance
 
 
 def get_base64_timeseries_id(product, serial_number):
-	the_id = f"https://aas.murrelektronik.com/{product}/sm/0/0/{serial_number}/timeseries"
+	the_id = f"http://deopp-aasinst-01/{product}/sm/0/0/{serial_number}/timeseries"
 	encoded = base64.b64encode(the_id.encode())
 	return encoded.decode().replace('=', '')    # drop padding
 
 
 def get_timeseries_url(product, serial_number):
 	timeseries_id = get_base64_timeseries_id(product, serial_number)
-	url = f"http://localhost:8082/submodels/{timeseries_id}/submodel-elements/Segments"
+	url = f"http://deopp-aasinst-01:8082/submodels/{timeseries_id}/submodel-elements/Segments"
 	return url
 
 
@@ -122,7 +122,7 @@ class InstanceDemoStep1(StatelessAction):
 			return page
 		result = apply_replacements(
 			page.get_result().decode(),
-			PLACEHOLDER_FOOTPRINT_TOTAL_=f'{total:.2f} [kg/kWh]',
+			PLACEHOLDER_FOOTPRINT_TOTAL_=f'{total:.2f}',
 			PLACEHOLDER_PRODUCT_=product,
 			PLACEHOLDER_SERIAL_NUMBER_=serial_number
 		)

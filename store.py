@@ -17,6 +17,7 @@ from lib.store.actions.json_format import JsonFormat
 from lib.store.actions.base64_encoding import Base64Encoding
 
 from app.actions.aas.instance.demo1_submit import InstanceDemoStep1
+from app.actions.aas.instance.shell_finalized_upload import ShellFinalizer
 from app.actions.aas.instance.upload_instance import AASInstanceDownload
 from app.actions.aas.instance.test import Test1
 
@@ -78,6 +79,9 @@ def create_basic_assets():
 
 	instance_demo_1 = Asset(InstanceDemoStep1())
 	std_context.store.store(std_context, instance_demo_1, path='app.aas.instance.demo', mode='775')
+
+	demo_finalizer_1 = Asset(ShellFinalizer())
+	std_context.store.store(std_context, demo_finalizer_1, path='app.aas.instance.finalize', mode='775')
 
 	download_instance = Asset(AASInstanceDownload(), url='http://localhost:8082/shells')
 	std_context.store.store(std_context, download_instance, path='app.aas.instance.shells', mode='775')

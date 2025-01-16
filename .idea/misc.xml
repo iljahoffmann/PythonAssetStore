@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="Black">
-    <option name="sdkName" value="Python 3.13 virtualenv at C:\Users\Ilja\source\repos\AssetStore\.venv" />
+    <option name="sdkName" value="Python 3.11 (PythonAssetStore)" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.13 virtualenv at C:\Users\Ilja\source\repos\AssetStore\.venv" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.11 (PythonAssetStore)" project-jdk-type="Python SDK" />
 </project>
