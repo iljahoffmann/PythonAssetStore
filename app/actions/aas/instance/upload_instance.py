@@ -1,3 +1,4 @@
+import os
 import requests
 import json
 
@@ -6,7 +7,7 @@ from lib.call_result import CallResult
 from lib.store.update_context import UpdateContext
 from lib.store.action import StatelessAction
 from lib.store.help import Help
-
+from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 # http://localhost:8082/shells/aHR0cHM6Ly9hYXMubXVycmVsZWt0cm9uaWsuY29tLzU4ODQxL2Fhcy8wLzAvMjAxNzEyMzQ1Njc4OQ
 # http://localhost:8082/shells/aHR0cHM6Ly9hYXMubXVycmVsZWt0cm9uaWsuY29tLzU0NTMwL2Fhcy8wLzAvMjAxNzEyMzQ1Njc4OQ
@@ -22,15 +23,31 @@ class AASInstanceUpload(StatelessAction):
 		:return: Response object from the server.
 		"""
 		# url = 'http://localhost:8082/upload'
+		file_path = ProjectPath.local(file)
+		file_size = os.path.getsize(file_path)
 		headers = {
+			"Content-Length": str(file_size),
 			'Content-Type': mime_type
 		}
 
 		try:
 			# The 'files' parameter of requests handles the multipart/form-data content type.
-			with open(ProjectPath.local(file), 'rb') as file:
-				files = {'file': file}
-				response = requests.post(url, headers=headers, files=files)
+			with open(file_path, 'rb') as file:
+				encoder = MultipartEncoder(
+					fields={"file": (file_path, file, "application/octet-stream")}
+				)
+
+				headers = {
+					"Content-Type": encoder.content_type,  # Includes the boundary automatically
+				}
+
+				response = requests.post(url, data=encoder, headers=headers)
+
+				# files = {'file': file}
+				# response = requests.post(url, headers=headers, files=files)
+				# response = requests.post(url, files=files)
+				print("Status Code:", response.status_code)
+				print("Response Text:", response.text)
 		except Exception as ex:
 			return CallResult.of(ex)
 

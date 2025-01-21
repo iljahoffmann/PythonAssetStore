@@ -1,5 +1,6 @@
 import json
 import base64
+import requests
 
 from lib.fsutil import apply_replacements
 from lib.project_path import ProjectPath
@@ -9,11 +10,37 @@ from lib.store.update_context import UpdateContext
 from lib.store.action import StatelessAction
 from lib.store.help import Help
 
-from app.actions.aas.instance.upload_instance import AASInstancePut, AASInstanceDownload
+from app.aas_demo_generator import create_demo_aasx, clean_up
+from app.actions.aas.instance.upload_instance import AASInstancePut, AASInstanceDownload, AASInstanceUpload
+from app.actions.aas.instance.shell_finalized_upload import external_shell_exists
+
+
+def get_internal_product_base(product, serial_number):
+	the_id = f"http://deopp-aasinst-01/{product}/aas/1/0/{serial_number}"
+	encoded = base64.b64encode(the_id.encode())
+	return encoded.decode().replace('=', '')    # drop padding
+
+
+def get_internal_product_shell_url(product, serial_number):
+	product_shell_id = get_internal_product_base(product, serial_number)
+	url = f"http://deopp-aasinst-01:8082/shells/{product_shell_id}"
+	return url
+
+
+# from app.actions.aas.instance.demo1_submit import internal_shell_exists
+# internal_shell_exists('54530', '2017123456789')
+def internal_shell_exists(product, serial_number):
+	shell_url = get_internal_product_shell_url(product, serial_number)
+	try:
+		response = requests.get(shell_url)
+		return 200 <= response.status_code < 300
+	except Exception as ex:
+		x = str(ex)
+		return False
 
 
 def get_base64_timeseries_id(product, serial_number):
-	the_id = f"http://deopp-aasinst-01/{product}/sm/0/0/{serial_number}/timeseries"
+	the_id = f"http://deopp-aasinst-01/{product}/sm/1/0/{serial_number}/timeseries"
 	encoded = base64.b64encode(the_id.encode())
 	return encoded.decode().replace('=', '')    # drop padding
 
@@ -21,6 +48,11 @@ def get_base64_timeseries_id(product, serial_number):
 def get_timeseries_url(product, serial_number):
 	timeseries_id = get_base64_timeseries_id(product, serial_number)
 	url = f"http://deopp-aasinst-01:8082/submodels/{timeseries_id}/submodel-elements/Segments"
+	return url
+
+
+def get_internal_upload_url():
+	url = f"http://deopp-aasinst-01:8082/upload"
 	return url
 
 
@@ -63,6 +95,25 @@ class InstanceDemoStep1(StatelessAction):
 		return info_json
 
 	def _initial_product_setup(self, asset, context, product, serial_number):
+		if internal_shell_exists(product, serial_number):
+			raise ValueError(f'Internal Asset Shell already exists for {product}#{serial_number}')
+
+		if external_shell_exists(product, serial_number):
+			raise ValueError(f'External Asset Shell already exists for {product}#{serial_number}')
+
+		path_to_shell = create_demo_aasx(product, serial_number, 'internal', 0.0)
+		upload_url = get_internal_upload_url()
+		upload_info = AASInstanceUpload().execute(
+			asset, context,
+			upload_url,
+			file=path_to_shell,
+			mime_type='multipart/form-data'
+			# mime_type = 'application/octet-stream'
+		)
+		upload_response = upload_info.get_result().content
+		if not (200 <= upload_info.get_result().status_code < 300):
+			raise ValueError(f'Could not upload asset shell to internal server: {product}#{serial_number}')
+
 		# InternalSegment_PCB_Assembly
 		timeseries_url = get_timeseries_url(product, serial_number)
 		info = AASInstancePut().execute(
@@ -72,6 +123,7 @@ class InstanceDemoStep1(StatelessAction):
 			mime_type='application/json'
 		)
 		response = info.get_result().content
+
 		pass
 
 	@staticmethod
@@ -138,6 +190,8 @@ class InstanceDemoStep1(StatelessAction):
 			footprint: str=None,
 			**kwargs
 	):
+		internal_shell_exists('54530', '201712345678900')
+
 		phase_number = int(step) - 1
 		if phase_number < 0 or phase_number > len(self.phases):
 			raise ValueError(f'non-existing phase: {phase_number}')

@@ -122,7 +122,7 @@
 </header>
 
 <div class="content">
-<form action="/?asset=app.aas.instance.demo1" method="POST">
+<form action="/?asset=app.aas.instance.demo" method="POST">
 	<div class="form-group">
         <label for="product" class="box-label">Choose a Product:</label>
         <select id="product" name="product">
@@ -133,7 +133,7 @@
 
 	<div class="form-group">
         <label for="serial_number" class="text-label">Serial No.:</label>
-        <input type="text" id="serial_number" name="serial_number" value="2017123456789" readonly>
+        <input type="text" id="serial_number" name="serial_number" placeholder="Enter Serial Number">
 	</div>
 
 	<input type="hidden" name="step" value="1">
