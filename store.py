@@ -11,6 +11,8 @@ from lib.store.user_registry import UserRegistry
 from lib.store.asset_store import AssetStore, AssetFileStorage
 from lib.store.update_context import UpdateContext
 from lib.store.asset import Asset
+from lib.store.action_registry import ActionRegistry
+
 from lib.store.actions.read_dir import ReadDir
 from lib.store.actions.file_directory import FileDirectory
 from lib.store.actions.json_format import JsonFormat
@@ -20,6 +22,7 @@ from app.actions.aas.instance.demo1_submit import InstanceDemoStep1
 from app.actions.aas.instance.shell_finalized_upload import ShellFinalizer
 from app.actions.aas.instance.upload_instance import AASInstanceDownload
 from app.actions.aas.instance.test import Test1
+from app.actions.tool.qrcode import QrEncode
 
 
 MAX_BODY_SIZE = 1_000_000
@@ -112,6 +115,9 @@ def create_basic_assets():
 		path='app.aas.instance.source.intern.58841'
 	)
 	std_context.store.store(std_context, p2_filtered, path='app.aas.instance.intern.58841', mode='775')
+    
+	# add actions from action registry:
+	ActionRegistry.create_registered_actions(std_context)
 	pass
 
 # curl --location --request PUT 'http://localhost:8082/submodels/aHR0cHM6Ly9hYXMubXVycmVsZWt0cm9uaWsuY29tLzU0NTMwL3NtLzAvMC8yMDE3MTIzNDU2Nzg5L3RpbWVzZXJpZXM/submodel-elements/Segments' --header 'Content-Type: application/json' --data @demo_segments_leer.json

@@ -31,6 +31,9 @@ class UpdateContext(dict):
 			# Raise AttributeError if the key is not found
 			raise AttributeError(f"'{type(self).__name__}' object has no attribute '{item}'")
 
+	def copy(self):
+		return UpdateContext(**self)
+
 	def push_identity(self, user, group):
 		self.get('identity').append((user, group))
 

@@ -1,13 +1,11 @@
 import os
 import traceback
 from collections.abc import MutableMapping
-from abc import ABC, abstractmethod
-from struct import unpack
-from xml.etree.ElementTree import indent
+from abc import ABC, abstractmethod, ABCMeta
 
 # from lib.ABC import AbstractBaseClassCalled
 from lib.persistence import BasicPersistentObject, to_json, from_json
-from lib.path_op import TreePath, path_iter, path_set, path_del
+from lib.path_op import TreePath, path_iter
 from lib.default import default_or_raise
 from lib.project_path import ProjectPath
 from lib.shared_dict import SharedDict
@@ -178,7 +176,37 @@ class AssetFileStorage(IAssetStorage):
 		self._save_object(AssetFileStorage.id_filename, asset_id)
 
 
-class AssetStore:
+class IAssetStore(ABC):
+	@abstractmethod
+	def acquire(self, context, path, asset_id, default):
+		pass
+
+	@abstractmethod
+	def store(self, context, asset, path, accept_inner_access, mode):
+		pass
+
+	@abstractmethod
+	def remove(self, context, path):
+		pass
+
+	@abstractmethod
+	def mkdir(self, context, path, mode):
+		pass
+
+	@abstractmethod
+	def read_directory(self, context, path):
+		pass
+
+
+class AssetStoreBase(IAssetStore, ABC):
+	@staticmethod
+	def query(context: UpdateContext, path: str, **kwargs):
+		asset = context.store.acquire(context, path=path)
+		result = asset.update(context, **kwargs)
+		return  result
+
+
+class AssetStore(AssetStoreBase):
 	runtime_key = 'runtime'
 	deleted_directory_base = 'deleted'
 	allow_access_by_default = True
@@ -275,35 +303,6 @@ class AssetStore:
 			return asset
 		except Exception as ex:
 			return default_or_raise(default, str(ex))
-
-	def _int_acquired(self, current, tree_path, current_path, default):
-		is_last_component = len(tree_path.components) == len(current_path)
-		if is_last_component:
-			return self._acquire_by_id()
-		else:
-			raise Exception('not yet implemented')
-
-	def _symlink_acquired(self, current, tree_path, current_path, default):
-		asset = self._acquire_by_id(current)
-		is_last_component = len(tree_path.components) == len(current_path)
-
-	def _link_acquired(self, current, tree_path, current_path, default):
-		pass
-
-	def _asset_source_acquired(self, current, tree_path, current_path, default):
-		pass
-
-	def _node_acquired(self, current, tree_path, current_path, default):
-		# int as a value is the inode number
-		if isinstance(current, int):
-			return self._int_acquired(current, tree_path, current_path, default)
-		# string (treepath) as a value is a symlink
-		if isinstance(current, str):
-			return self._symlink_acquired(current, tree_path, current_path, default)
-		elif isinstance(current, IAssetSource):
-			return self._asset_source_acquired(current, tree_path, current_path, default)
-
-		return default_or_raise(default, f'invalid directory entry at {current_path}')
 
 	@staticmethod
 	def _get_node_permissions(node) -> UnixPermissions|None:
@@ -543,15 +542,10 @@ class AssetStore:
 		self.storage.save_asset_tree(self.asset_tree)
 		self.storage.save_asset_id(self.next_asset_id)
 
-	@staticmethod
-	def query(context: UpdateContext, path: str, **kwargs):
-		asset = context.store.acquire(context, path=path)
-		result = asset.update(context, **kwargs)
-		return  result
 
 
 if __name__ == '__main__':
-	from lib.store.actions.action_tests import TestDispatchedAction, TestAction
+	from lib.store.actions.action_tests import TestDispatchedAction
 	from lib.store.actions.update_action import UpdateAssetAction, make_asset_description
 
 	def _make_user_registry():
