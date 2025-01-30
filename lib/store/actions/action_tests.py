@@ -6,7 +6,7 @@ from lib.call_result import ErrorResult
 from lib.store.action import StatelessAction, StatelessDispatchedAction
 from lib.store.help import Help
 
-
+# ----------- Basic Action ---------------------------------------------------------------
 class TestAction(StatelessAction):
 	def execute(self, asset, context, **kwargs):
 		m = 'Hello Action No5'
@@ -17,46 +17,47 @@ class TestAction(StatelessAction):
 		return Help.make('an action to take basic test actions', 'None', args='nope. no args.')
 
 
-TestActionScope = DispatchedNamespace()
+# ----------- Action with multi-dispatch and pre-conditions ------------------------------
+TestDispatchedActionScope = DispatchedNamespace()
 
 
 class TestDispatchedAction(StatelessDispatchedAction):
-	@TestActionScope.conditional()
+	@TestDispatchedActionScope.conditional()
 	def _execute(self, asset, context, path: str, **kwargs):
 		return f'some path here: {path}'
 
-	@TestActionScope.conditional(
+	@TestDispatchedActionScope.conditional(
 		count=when(is_a(int), in_range(1000, 3000))
 	)
 	def _execute(self, asset, context, count, **kwargs):
 		return f'got a good count: {count}'
 
-	@TestActionScope.conditional(
+	@TestDispatchedActionScope.conditional(
 		option=optional(is_a(str))
 	)
 	def _execute(self, asset, context, count: float, option='', **kwargs):
 		f = get_source_info(self)
 		return f'floaty option5: {count}/{option} ---- {kwargs}'
 
-	@TestActionScope.conditional()
+	@TestDispatchedActionScope.conditional()
 	def _execute(self, asset, context, count: float):
 		return f'thats floaty: {count}'
 
-	@TestActionScope.conditional()
+	@TestDispatchedActionScope.conditional()
 	def _execute(self, asset, context, count: int):
 		return f'got a count: {count}'
 
-	@TestActionScope.conditional(
+	@TestDispatchedActionScope.conditional(
 		count=in_range(1000, 3000)
 	)
 	def _execute(self, asset, context, count: int, label: int):
 		return f'got a count and a max: {count}/{label}'
 
-	@TestActionScope.conditional()
+	@TestDispatchedActionScope.conditional()
 	def _execute(self, asset, context, count: int, label: str):
 		return f'got a count with a label: {count} "{label}"'
 
-	@TestActionScope.conditional()
+	@TestDispatchedActionScope.conditional()
 	def _execute(self, asset, context, **kwargs):
 		error = 'TestDispatchedAction: Fallthrough method called -- no appropriate handler was found.'
 		lines = [error, 'Args:', *[f'{k}:{v.__class__.__name__}={v}' for k, v in kwargs.items()]]

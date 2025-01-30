@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from lib.persistence import IPersistentObject
+from lib.store.update_context import UpdateContext
 
 
 class IAction(IPersistentObject, ABC):
@@ -15,7 +16,7 @@ class IAction(IPersistentObject, ABC):
 		pass
 
 	@abstractmethod
-	def pre_update(self, asset, args: dict, context):
+	def pre_update(self, asset, context, args: dict):
 		"""
 		Called immediately before dependencies are updated.
 		Default is to do nothing.
@@ -103,7 +104,7 @@ class IAssetReference(IPersistentObject, ABC):
 	to retrieve the referenced asset and provide string representations.
 	"""
 
-	def get_asset(self) -> "Asset":
+	def get_asset(self, context: "UpdateContext") -> "Asset":
 		"""Retrieve the referenced asset."""
 		raise NotImplementedError()
 

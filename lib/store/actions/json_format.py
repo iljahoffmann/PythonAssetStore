@@ -20,7 +20,7 @@ class JsonFormat(StatelessAction):
 			result = f'this is {data['id']} aka {base64.b64encode(data['id'].encode())}'
 			pass
 
-		update_result = context.store.query(context, path=path).get_result()
+		update_result = context.store.query(context, path=path)
 		handler = self._get_handler(update_result)
 		result = handler(asset, context, key, update_result)
 
@@ -39,6 +39,9 @@ class JsonFormat(StatelessAction):
 		handler = self._get_handler(data)
 		result = handler(asset, context, key, data)
 		return result
+
+	def _ErrorResult(self, asset, context, key, error_result):
+		return error_result
 
 	def _unknown(self, asset, context, key, update_result):
 		raise ValueError(f'Unhandled data type: {update_result.__class__.__name__}')

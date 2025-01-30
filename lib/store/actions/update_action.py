@@ -8,6 +8,7 @@ from lib.value_predicate import is_of_type, optional
 
 from lib.store.action import IAction, StatelessDispatchedAction
 from lib.store.asset import Asset
+from lib.store.action_registry import ActionRegistry
 
 
 asset_description_schema = Object({
@@ -52,6 +53,7 @@ def make_asset_description(
 update_asset_action_namespace = DispatchedNamespace()
 
 
+@ActionRegistry.store_asset(path='bin.reload')
 class UpdateAssetAction(StatelessDispatchedAction):
 	@staticmethod
 	def _get_action_instance(file, class_name, ctor_parameters, namespace:MutableMapping[str, "module"]=None):
@@ -67,7 +69,7 @@ class UpdateAssetAction(StatelessDispatchedAction):
 	def _execute(self,
 	        asset,
 	        context,
-	        path_to_asset:str,
+	        path:str,
 	        asset_description,
 	        namespace=None
 	):
@@ -83,13 +85,13 @@ class UpdateAssetAction(StatelessDispatchedAction):
 			action_from_module,
 			asset_description.get('action_args', {})
 		)
-		context.store.store(context, created_asset, path=path_to_asset, mode=asset_description['mode'])
-		return f'stored {action_module}:{action_description["class_name"]} in {path_to_asset}'
+		context.store.store(context, created_asset, path=path, mode=asset_description['mode'])
+		return f'stored {action_module}:{action_description["class_name"]} in {path}'
 		pass
 
 	@update_asset_action_namespace.conditional()
-	def _execute(self, asset, context, path_to_asset:str, namespace=None):
-		update_asset = context.store.acquire(context, path_to_asset)
+	def _execute(self, asset, context, path:str, namespace=None):
+		update_asset = context.store.acquire(context, path)
 		action: IAction = update_asset.action
 		ctor_parameters = action.ctor_parameter()
 		file, class_name = get_source_info(action)
@@ -104,7 +106,7 @@ class UpdateAssetAction(StatelessDispatchedAction):
 			return ErrorResult.from_exception(ex)
 
 		update_asset.action = action_from_module
-		return f'reloaded {action_module}:{class_name} in {path_to_asset}'
+		return f'reloaded {action_module}:{class_name} in {path}'
 
 	# Fallthrough
 	@update_asset_action_namespace.conditional()
@@ -124,7 +126,7 @@ if __name__ == '__main__':
 		)
 
 		updater =  UpdateAssetAction()
-		updater.execute(None, None, path_to_asset='test.test2', asset_description=request)
+		updater.execute(None, None, path='test.test2', asset_description=request)
 
 		pass
 

@@ -6,6 +6,7 @@ from flask import Flask, request, jsonify, Response
 from lib.project_path import ProjectPath
 from lib.fsutil import text_file_content
 from lib.persistence import to_json
+from lib.call_result import ErrorResult
 
 from lib.store.user_registry import UserRegistry
 from lib.store.asset_store import AssetStore, AssetFileStorage
@@ -13,16 +14,25 @@ from lib.store.update_context import UpdateContext
 from lib.store.asset import Asset
 from lib.store.action_registry import ActionRegistry
 
-from lib.store.actions.read_dir import ReadDir
 from lib.store.actions.file_directory import FileDirectory
 from lib.store.actions.json_format import JsonFormat
 from lib.store.actions.base64_encoding import Base64Encoding
+from lib.store.actions.update_action import UpdateAssetAction
 
 from app.actions.aas.instance.demo1_submit import InstanceDemoStep1
 from app.actions.aas.instance.shell_finalized_upload import ShellFinalizer
 from app.actions.aas.instance.upload_instance import AASInstanceDownload
-from app.actions.aas.instance.test import Test1
+
+from lib.store.actions.read_dir import ReadDir
+from lib.store.actions.get_help import GetHelp
+from lib.store.actions.get_asset_info import GetAssetInfo
+import lib.store.actions.call_asset
+
 from app.actions.tool.qrcode import QrEncode
+from app.actions.aas.instance.test import Test1
+
+from app.test.active_asset import TestActiveAction
+from app.test.call_method import TestDispatchToMember
 
 
 MAX_BODY_SIZE = 1_000_000
@@ -71,8 +81,8 @@ def store_setup():
 
 
 def create_basic_assets():
-	read_dir_asset = Asset(ReadDir())
-	std_context.store.store(std_context, read_dir_asset, path='bin.ls', mode='775')
+	# read_dir_asset = Asset(ReadDir())
+	# std_context.store.store(std_context, read_dir_asset, path='bin.ls', mode='775')
 
 	file_serve = Asset(FileDirectory().set_base_path('[]/data/www'))
 	std_context.store.store(std_context, file_serve, path='www.files', mode='775')
@@ -154,7 +164,10 @@ def process():
 	call_context = UpdateContext(**std_context)
 	call_context['mimetype'] = 'application/json'
 
-	asset: Asset = call_context.store.acquire(call_context, asset_path)
+	try:
+		asset: Asset = call_context.store.acquire(call_context, asset_path)
+	except Exception as ex:
+		return ErrorResult.from_exception(ex).to_json()
 	if asset is None:
 		return jsonify({'error': f'asset not found: {asset_path}'})
 
@@ -175,7 +188,7 @@ if __name__ == '__main__':
 	def main():
 		global std_context
 		std_context = store_setup()
-		create_basic_assets()
+		# create_basic_assets()
 		#  app.run('0.0.0.0', 5001, debug=True)
 		app.run('0.0.0.0', 5001)
 

@@ -15,7 +15,7 @@ class Test1(StatelessAction):
 			pass
 
 		result = None
-		src_asset = (context.store.query(context, path='app.aas.instance.intern.58841').get_result().
+		src_asset = (context.store.query(context, path='app.aas.instance.intern.58841').
 		then(
 			lambda r: _process_result(json.loads(r.content.decode()))
 		))

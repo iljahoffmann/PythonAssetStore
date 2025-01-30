@@ -7,8 +7,7 @@ from lib.store.help import Help
 
 
 class BasicAction(BasicPersistentObject, IAction, ABC):
-	def update_dependency(self, asset, dependency_reference, args: dict, context):
-		dependency = dependency_reference.retrieve()
+	def update_dependency(self, asset, context, dependency, **kwargs):
 		updated_dependency = dependency.update({}, context)  # Default: no parameters for template update
 		return updated_dependency
 
@@ -26,7 +25,22 @@ class BasicAction(BasicPersistentObject, IAction, ABC):
 		pass
 
 	def accepts_inner_access(self):
-		return False
+		"""
+		Whether the inner access protocol is supported: if so, additional path components the client provided when
+		acquiring, that were not used to locate the asset, are accepted and provided to the asset's execute() kwargs.
+
+		For example, if the client addressed 'app.store.items.1' and the asset is bound to app.store.items, the
+		additional component '1' is assumed a parameter to the assets action.
+
+		Three different names for get-, set- or delete-operations are used for the additional components list:
+		'_inner_get': used with a get request,
+		'_inner_set' + 'inner_value': for a set request, and
+		'_inner_del': when a delete-operation is requests.
+
+		The action has to check the mode by testing the presence of the above in the kwargs-parameter and can then act
+		accordingly.
+		"""
+		return False        # by default, the IAP is not supported
 
 	@staticmethod
 	def required_parameter(asset, key):

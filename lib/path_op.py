@@ -71,6 +71,10 @@ class TreePath(StdJSONSerializable):
 	def __len__(self):
 		return len(self.components)
 
+	def __add__(self, other):
+		right_side = other if isinstance(other, TreePath) else TreePath(other)
+		return TreePath(*self.components, *right_side.components)
+
 	def _parse_path(self, path: str):
 		"""
 		Parse a path like 'company.members[0].name' into a list of steps:

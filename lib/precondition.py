@@ -151,6 +151,7 @@ def precondition(debug=False, **precondition_kwargs):
         setattr(_make_call, '_precondition', _check_preconditions)
         setattr(_make_call, '_unconditional_call', _caller)
         setattr(_make_call, '_preconditioned_function', function)
+        setattr(_make_call, '__doc__', function.__doc__)
         return _make_call
 
     return _wrapper

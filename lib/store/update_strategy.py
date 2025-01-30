@@ -1,4 +1,4 @@
-from typing import MutableMapping
+from typing import MutableMapping, Sequence
 
 from lib.call_result import ErrorResult, ValidResult
 from lib.store.asset_interfaces import IUpdateStrategy, IAssetReference, IAction
@@ -46,6 +46,25 @@ def execute_action(asset: "Asset", action: IAction, action_args: MutableMapping[
 	return asset.set_result(result if isinstance(result, ErrorResult) else ValidResult(result))
 
 
+def _update_without_user_params(asset: "Asset", context: UpdateContext, action: IAction, action_args):
+	# since the action-result is a member of the asset, updating without parameters is functionally
+	# equivalent to the 'read' operation on the asset: it is assumed that the asset was set up with
+	# secure parameters and the user accesses the configured value/result only.
+	if context.permission_granted(asset.get_permissions(), 'r'):
+		if context.permission_granted(asset.get_permissions(), 'w'):
+			return execute_action(asset, action, action_args, context)
+		else:
+			return execute_action(asset.clone(), action, action_args, context)
+	raise PermissionError('read permission denied')
+
+def _parametrized_update(asset: "Asset", context, action: IAction, action_args, **kwargs):
+	# 'true' Update requires 'execute' permission.
+	if context.permission_granted(asset.get_permissions(), 'x'):
+		action_args.update(kwargs)
+		return execute_action(asset.clone(), action, action_args, context)
+	raise PermissionError('execute permission denied')
+
+
 class UpdateStrategyBasic(IUpdateStrategy):
 	"""
 	The basic update strategy is to call the action unconditionally and not threaded.
@@ -55,34 +74,35 @@ class UpdateStrategyBasic(IUpdateStrategy):
 		action, action_args = get_action_and_args(asset)
 
 		if len(kwargs) == 0:
-			return UpdateStrategyBasic._update_without_user_params(asset, context, action, action_args)
+			return _update_without_user_params(asset, context, action, action_args)
 		else:
-			return UpdateStrategyBasic._parametrized_update(asset, context, action, action_args, **kwargs)
-
-	@classmethod
-	def _update_without_user_params(cls, asset: "Asset", context: UpdateContext, action: IAction, action_args):
-		# since the action-result is a member of the asset, updating without parameters is functionally
-		# equivalent to the 'read' operation on the asset: it is assumed that the asset was set up with
-		# secure parameters and the user accesses the configured value/result only.
-		if context.permission_granted(asset.get_permissions(), 'r'):
-			if context.permission_granted(asset.get_permissions(), 'w'):
-				return execute_action(asset, action, action_args, context)
-			else:
-				return execute_action(asset.clone(), action, action_args, context)
-		raise PermissionError('read permission denied')
-
-	@classmethod
-	def _parametrized_update(cls, asset: "Asset", context, action: IAction, action_args, **kwargs):
-		# 'true' Update requires 'execute' permission.
-		if context.permission_granted(asset.get_permissions(), 'x'):
-			action_args.update(kwargs)
-			return execute_action(asset.clone(), action, action_args, context)
-		raise PermissionError('execute permission denied')
+			return _parametrized_update(asset, context, action, action_args, **kwargs)
 
 
 class UpdateStrategyMake(IUpdateStrategy):
 	@classmethod
 	def update(cls, asset, context, **kwargs):
+		def _update_required():
+			update_required = cls.update_required(asset, context)
+			if not update_required:
+				for d in dependency_assets:
+					if cls.update_required(d, context):
+						update_required = True
+			return update_required
+
+		action = asset.action
+		action.pre_update()
+
+		dependencies: Sequence[IAssetReference] = asset.dependencies;
+		dependency_assets = [d.get_asset() for d in dependencies]
+
+		if not _update_required():
+			return asset
+
+		updated_dependencies = []
+		for dependency in dependency_assets:
+			updated_dependency = action.update_dependency(asset, context, dependency, **kwargs)
+			updated_dependencies.append(updated_dependency)
 		pass
 
 	@classmethod

@@ -65,7 +65,7 @@ class TestCallResult(unittest.TestCase):
         stream = io.StringIO()
         result.dump(stream=stream)
         log = stream.getvalue()
-        self.assertIn("ValidResult(42)", log)
+        self.assertIn("ValidResult[int](42)", log)
 
     def test_error_result_dump(self):
         result = ErrorResult("Test error")

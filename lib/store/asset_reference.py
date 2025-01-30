@@ -1,127 +1,65 @@
-from abc import ABC
+from abc import ABC, abstractmethod
+from collections.abc import Sequence
+from typing import Any
+
+from lib.persistence import BasicPersistentObject, IPersistentObject
 from lib.store.asset_interfaces import IAssetReference
+from lib.store.update_context import UpdateContext
 
 
-class BasicAssetReference(IAssetReference, ABC):
-    """
-    Basic implementation of the IAssetReference interface.
-    """
+class AssetReference(IAssetReference, ABC):
+    def __init__(self, name:str = None):
+        self._name = name
 
-    def __init__(self, name=None):
-        self.name = name
-
-    def retrieve(self):
-        """Retrieve the asset (to be implemented by derived classes)."""
-        raise NotImplementedError()
+    def ctor_parameter(self):
+        return {'name': self.get_name()}
 
     def get_name(self):
-        return self.name
+        return self._name
 
-    def __str__(self):
-        prefix = f"{self.name}:" if self.name else ""
-        return f"{prefix}BasicAssetReference"
+    @staticmethod
+    def of(some_thing:Any) -> IAssetReference|Sequence[IAssetReference]:
+        def _make(_in):
+            if isinstance(_in, int):
+                return AssetById(_in)
+            elif isinstance(_in, str):
+                return AssetByPath(_in)
+            elif hasattr(_in, 'get_id'):
+                return AssetById(_in.get_id())
+            elif isinstance(_in, IAssetReference):
+                return _in
+
+            raise ValueError(f'invalid conversion type: {_in.__class__}')
+
+        if isinstance(some_thing, Sequence):
+            return [_make(e) for e in some_thing]
+        else:
+            return _make(some_thing)
 
 
-class AssetInstanceReference(BasicAssetReference):
-    """
-    A reference to a specific asset instance.
-    """
-
-    def __init__(self, asset=None, name=None):
+class AssetById(AssetReference, BasicPersistentObject):
+    def __init__(self, asset_id: int, name:str = None):
         super().__init__(name)
-        self.referee = asset
+        self._id = asset_id
 
-    def retrieve(self):
-        if self.referee is None:
-            raise ValueError("No asset is referenced.")
-        return self.referee
+    def ctor_parameter(self):
+        result = super().ctor_parameter()
+        result['asset_id'] = self._id
+        return result
 
-    def to_tree(self):
-        return {
-            "type": "AssetInstanceReference",
-            "name": self.name,
-            "referee_id": self.referee.local_id if self.referee else None
-        }
-
-    def from_tree(self, tree):
-        self.name = tree.get("name")
-        # Assuming a method to retrieve assets by ID
-        self.referee = retrieve_asset_by_id(tree.get("referee_id"))  # Placeholder function
-        return self
-
-    def __str__(self):
-        if self.referee is None:
-            return "nullReference"
-        prefix = f"{self.name}:" if self.name else ""
-        return f"{prefix}{self.referee.local_id}"
+    def get_asset(self, context: UpdateContext) -> "Asset":
+        return context.store.acquire(context, asset_id=self._id)
 
 
-class AssetIdReference(BasicAssetReference):
-    """
-    A reference to an asset by its unique ID.
-    """
-
-    def __init__(self, asset_id=-1, name=None):
+class AssetByPath(AssetReference, BasicPersistentObject):
+    def __init__(self, path: str, name:str = None):
         super().__init__(name)
-        self.asset_id = asset_id
+        self._path = path
 
-    def retrieve(self):
-        # Assuming a method to retrieve assets by ID
-        return retrieve_asset_by_id(self.asset_id)  # Placeholder function
+    def ctor_parameter(self):
+        result = super().ctor_parameter()
+        result['path'] = self._path
+        return result
 
-    def to_tree(self):
-        return {
-            "type": "AssetIdReference",
-            "name": self.name,
-            "asset_id": self.asset_id
-        }
-
-    def from_tree(self, tree):
-        self.name = tree.get("name")
-        self.asset_id = tree.get("asset_id")
-        return self
-
-    def __str__(self):
-        prefix = f"{self.name}:" if self.name else ""
-        return f"{prefix}{self.asset_id}"
-
-
-class AssetKeyReference(BasicAssetReference):
-    """
-    A reference to an asset by a hierarchical key (e.g., a path).
-    """
-
-    def __init__(self, key=None, name=None):
-        super().__init__(name)
-        self.asset_key = key
-
-    def retrieve(self):
-        # Assuming a method to retrieve assets by key
-        return retrieve_asset_by_key(self.asset_key)  # Placeholder function
-
-    def to_tree(self):
-        return {
-            "type": "AssetKeyReference",
-            "name": self.name,
-            "key": self.asset_key
-        }
-
-    def from_tree(self, tree):
-        self.name = tree.get("name")
-        self.asset_key = tree.get("key")
-        return self
-
-    def __str__(self):
-        prefix = f"{self.name}:" if self.name else ""
-        return f"{prefix}{self.asset_key}"
-
-
-# Placeholder functions for retrieving assets by ID or key
-def retrieve_asset_by_id(asset_id):
-    """Placeholder: Implement logic to retrieve an asset by its ID."""
-    pass
-
-
-def retrieve_asset_by_key(key):
-    """Placeholder: Implement logic to retrieve an asset by its key."""
-    pass
+    def get_asset(self, context: UpdateContext) -> "Asset":
+        return context.store.acquire(context, path=self._path)

@@ -30,6 +30,8 @@ class UpdateContext(dict):
 		except KeyError:
 			# Raise AttributeError if the key is not found
 			raise AttributeError(f"'{type(self).__name__}' object has no attribute '{item}'")
+		except Exception:
+			raise
 
 	def copy(self):
 		return UpdateContext(**self)
@@ -71,3 +73,9 @@ class UpdateContext(dict):
 	def make_permission(self, mode):
 		result = UnixPermissions(self.get_user(), self.get_group(), mode=mode)
 		return result
+
+	def get_mimetype(self, default=None):
+		return self.get('mimetype', default)
+
+	def set_mimetype(self, mimetype: str):
+		self['mimetype'] = mimetype

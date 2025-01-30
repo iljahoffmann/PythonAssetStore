@@ -4,9 +4,21 @@ import magic
 from lib.project_path import ProjectPath
 from lib.call_result import ErrorResult
 from lib.store.action import StatefulAction
+from lib.store.help import Help
 
 
 class FileDirectory(StatefulAction):
+	"""
+	Registers a directory (action argument) as a source of the contained files.
+	Action Args:
+		base_path (str): (project-) path on the server's filesystem. All contained files are published.
+
+	Args:
+		file (str): relative path within the base directory.
+
+	Returns:
+		Any: The contents of the requested file or an error.
+	"""
 	def set_base_path(self, base_path:str):
 		self.state['base'] = base_path
 		return self
@@ -28,4 +40,4 @@ class FileDirectory(StatefulAction):
 			return result
 
 	def get_help(self):
-		pass
+		return Help.from_docstring(self.__doc__)

@@ -4,6 +4,8 @@ import inspect
 from datetime import datetime, timedelta
 from queue import PriorityQueue
 from abc import ABC, abstractmethod
+from typing import MutableMapping
+
 from lib.module_loader import get_module
 from lib.ABC import AbstractBaseClassCalled
 from lib.project_path import SystemPath
@@ -45,7 +47,7 @@ class IPersistent(ABC):
 class IPersistentObject(IPersistent, ABC):
     """Convert from and to: JSON tree <-> packed format"""
     @abstractmethod
-    def to_transport(self):
+    def to_transport(self) -> str:
         pass
 
     @classmethod
@@ -54,7 +56,7 @@ class IPersistentObject(IPersistent, ABC):
         pass
 
     @abstractmethod
-    def ctor_parameter(self):
+    def ctor_parameter(self) -> MutableMapping[str, object]:
         pass
 
 
@@ -228,7 +230,7 @@ class StdJSONSerializable(IPersistentObject):
 
 
 # more intuitive naming
-class BasicPersistentObject(StdJSONSerializable):
+class BasicPersistentObject(StdJSONSerializable, ABC):
     pass
 
 

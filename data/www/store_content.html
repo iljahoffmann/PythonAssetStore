@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Directory Viewer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f9fafb;
+      color: #333;
+    }
+
+    #directory-title {
+      line-height: 2rem; /* Matches the height of the image */
+    }
+
+    .title-container {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .title-image {
+      height: 2rem; /* Adjust height to match text size */
+      vertical-align: middle;
+      width: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="min-h-screen flex flex-col items-center py-8">
+    <div class="bg-white shadow rounded-lg p-6 w-full max-w-4xl">
+      <div class="title-container mb-6">
+        <!-- <img src="/?asset=www.files&file=img/directory.png" alt="Directory Icon" class="title-image"> -->
+        <img src="PLACEHOLDER_DIRECTORY_ICON_" alt="Directory Icon" class="title-image" onclick="goToParent();">
+        <h1 id="directory-title" class="text-2xl font-semibold">Path: <span class="text-blue-600"></span></h1>
+      </div>
+      <table class="table-auto w-full border-collapse">
+        <thead>
+          <tr class="bg-gray-100">
+            <th class="p-2 text-left">Name</th>
+            <th class="p-2 text-left">Rights</th>
+            <th class="p-2 text-left">Owner</th>
+            <th class="p-2 text-left">Group</th>
+            <th class="p-2 text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="directory-contents">
+          <!-- Rows will be dynamically generated here -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // Example variables
+    const directory_name = "PLACEHOLDER_PATH_NAME_";
+    const parent_directory_name = "PLACEHOLDER_PARENT_NAME_";
+    const directory_contents = PLACEHOLDER_PATH_CONTENTS_;
+    /*
+    [
+      { user: "user1", group: "group1", rights: "rwxr-xr-x", name: "dir1", dir: true },
+      { user: "user2", group: "group2", rights: "rw-r--r--", name: "file2.txt", dir: false },
+      { user: "user3", group: "group3", rights: "rwx------", name: "file3.sh", dir: false },
+    ];
+    */
+
+    // Populate directory name
+    var shown_path = directory_name;
+    if (shown_path.length == 0)
+      shown_path = "Store Root";
+    document.getElementById('directory-title').querySelector('span').textContent = shown_path;
+
+    // Generate rows dynamically
+    const directoryContentsEl = document.getElementById('directory-contents');
+    directory_contents.forEach(entry => {
+      const row = document.createElement('tr');
+      row.className = "border-b hover:bg-gray-50";
+
+      row.innerHTML = `
+        <td class="p-2">${entry.name}</td>
+        <td class="p-2">${entry.rights}</td>
+        <td class="p-2">${entry.user}</td>
+        <td class="p-2">${entry.group}</td>
+      `;
+      if (entry.dir)
+      {
+        row.innerHTML += `
+        <td class="p-2 text-center">
+        </td>
+          `;
+      } else {
+        row.innerHTML += `
+        <td class="p-2 text-center">
+          <button class="bg-green-500 text-white py-1 px-2 rounded hover:bg-blue-600" onclick="handleHelp('${entry.name}')">Help</button>
+          <button class="bg-green-500 text-white py-1 px-2 rounded hover:bg-blue-600" onclick="handleView('${entry.name}')">View</button>
+          <button class="bg-green-500 text-white py-1 px-2 rounded hover:bg-blue-600" onclick="handleOpen('${entry.name}')">Open</button>
+        </td>
+          `;
+    }
+
+    // Bind click event to the entire row
+      row.addEventListener('click', (event) => {
+        // Prevent triggering row click when button is clicked
+        if (event.target.tagName !== 'BUTTON') {
+          handleRowClick(entry.name);
+        }
+      });
+
+      directoryContentsEl.appendChild(row);
+    });
+
+    function get_path(name)
+    {
+      if (directory_name.length == 0)
+        return name;
+      else
+        return directory_name + '.' + name;
+    }
+
+    // Placeholder function for button actions
+    function handleHelp(name) {
+      window.location.href = `/?asset=bin.help&path=${get_path(name)}&html=1`;
+    }
+
+    // Placeholder function for button actions
+    function handleView(name) {
+      window.location.href = `/?asset=bin.info&path=${get_path(name)}&html=1`;
+    }
+
+    // Placeholder function for button actions
+    function handleOpen(name) {
+      window.location.href = `/?asset=${get_path(name)}`;
+    }
+
+   // Handle click on a directory entry
+    function handleRowClick(name) {
+        var path;
+        if (directory_name != '')
+        {
+            path = directory_name + '.' + name;
+        } else {
+            path = name;
+        }
+        // const baseUrl = window.location.origin + window.location.pathname;
+       window.location.href = `/?asset=bin.ls&path=${encodeURIComponent(path)}&html=1`;
+    }
+
+    function goToParent()
+    {
+      window.location.href = `/?asset=bin.ls&path=${encodeURIComponent(parent_directory_name)}&html=1`;
+    }
+  </script>
+</body>
+</html>

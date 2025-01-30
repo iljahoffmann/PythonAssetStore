@@ -81,6 +81,9 @@ class DispatchedNamespace:
 
         return _real_decorator
 
+    def variants_for(self, class_name: str, method_name: str):
+        yield from self._variants.get(class_name, {}).get(method_name, {})
+
 
 if __name__ == '__main__':
     from lib.precondition import *

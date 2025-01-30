@@ -152,7 +152,7 @@ class ShellFinalizer(StatelessAction):
 		# 	data=json.dumps(pcf),
 		# 	mime_type='application/json'
 		# )
-		redirect_page = context.store.query(context, 'www.files', file='instance_demo/redirect_to_start.html').get_result()
+		redirect_page = context.store.query(context, 'www.files', file='instance_demo/redirect_to_start.html')
 		return redirect_page
 
 	def get_help(self):

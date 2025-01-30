@@ -4,7 +4,7 @@ from collections.abc import MutableMapping
 from abc import ABC, abstractmethod, ABCMeta
 
 # from lib.ABC import AbstractBaseClassCalled
-from lib.persistence import BasicPersistentObject, to_json, from_json
+from lib.persistence import IPersistentObject, BasicPersistentObject, to_json, from_json
 from lib.path_op import TreePath, path_iter
 from lib.default import default_or_raise
 from lib.project_path import ProjectPath
@@ -12,9 +12,11 @@ from lib.shared_dict import SharedDict
 from lib.store.asset_interfaces import IPermissionProvider
 from lib.store.user_registry import UserRegistry
 from lib.store.unix_permissions import UnixPermissions
-from lib.store.actions.read_dir import ReadDir
 from lib.store.asset import Asset
 from lib.store.update_context import UpdateContext
+from lib.store.asset_reference import AssetById
+
+from lib.store.actions.read_dir import ReadDir
 
 
 # The AssetStore uses basic concepts of a POSIX file system to represent a system of nested
@@ -34,8 +36,10 @@ from lib.store.update_context import UpdateContext
 # links on directories, however, when links of any kind are used, the strict tree invariant (exactly one path from
 # the root to any entry) is never truly fulfilled.
 #
-# IAssetSource is the interface that classes implement, that themselves are not assets but are able to produce or
-# retrieve assets.
+# AssetReference refers to an actual asset; use get_asset() to retrieve the asset.
+#
+# ActiveAsset is an AssetReference to an asset, that accepts the inner access protocol (active assets)
+# and should be used internally only (used by the store to identify and handle active assets).
 #
 # An asset source may implement the 'inner access' protocol (see **), which allows it to represent a store-compatible
 # tree of assets.
@@ -70,14 +74,46 @@ class IAssetStorage(ABC):
 		pass
 
 
-class IAssetSource(IPermissionProvider, ABC):
+class IAssetStore(ABC):
 	@abstractmethod
-	def get_asset(self) -> Asset:
+	def acquire(self, context, path, asset_id, default):
+		pass
+
+	@abstractmethod
+	def store(self, context, asset, path, accept_inner_access, mode):
+		pass
+
+	@abstractmethod
+	def remove(self, context, path):
+		pass
+
+	@abstractmethod
+	def mkdir(self, context, path, mode):
+		pass
+
+	@abstractmethod
+	def read_directory(self, context, path):
 		pass
 
 
-class IAssetReference(IAssetSource, ABC):
-	pass
+class ActiveAsset(AssetById, IPermissionProvider):
+	"""
+	An asset reference flagged as supporting the inner access protocol.
+	"""
+	def __init__(self, asset_id: int, permissions: "UnixPermissions"):
+		super().__init__(asset_id=asset_id)
+		self._permissions = permissions
+
+	def ctor_parameter(self):
+		params = super().ctor_parameter()
+		params['permissions'] = self._permissions
+		return params
+	
+	def get_permissions(self) -> "UnixPermissions":
+		return self._permissions
+
+	def set_permissions(self, permissions: "UnixPermissions"):
+		self._permissions = permissions
 
 
 class IStoreLink(IPermissionProvider, ABC):
@@ -176,34 +212,12 @@ class AssetFileStorage(IAssetStorage):
 		self._save_object(AssetFileStorage.id_filename, asset_id)
 
 
-class IAssetStore(ABC):
-	@abstractmethod
-	def acquire(self, context, path, asset_id, default):
-		pass
-
-	@abstractmethod
-	def store(self, context, asset, path, accept_inner_access, mode):
-		pass
-
-	@abstractmethod
-	def remove(self, context, path):
-		pass
-
-	@abstractmethod
-	def mkdir(self, context, path, mode):
-		pass
-
-	@abstractmethod
-	def read_directory(self, context, path):
-		pass
-
-
 class AssetStoreBase(IAssetStore, ABC):
 	@staticmethod
-	def query(context: UpdateContext, path: str, **kwargs):
+	def query(context: UpdateContext, path: str, return_full_asset: bool = False, **kwargs):
 		asset = context.store.acquire(context, path=path)
 		result = asset.update(context, **kwargs)
-		return  result
+		return  result if return_full_asset else result.get_result()
 
 
 class AssetStore(AssetStoreBase):
@@ -231,7 +245,7 @@ class AssetStore(AssetStoreBase):
 		return 100_000
 
 	@staticmethod
-	def _may_enter_directory(context: UpdateContext, permissions) -> bool:
+	def _may_execute(context: UpdateContext, permissions) -> bool:
 		# As in POSIX, the only permission required to traverse through directories given known names is "x"
 		if permissions:
 			return context.permission_granted(permissions, 'x')
@@ -329,12 +343,12 @@ class AssetStore(AssetStoreBase):
 		last_directory_permissions = current_permissions
 
 		for component in path.components:
-			current_path.append(component)
-
 			if not isinstance(current, MutableMapping):
 				return current, current_path, _effective_permissions(), None
 
-			if not self._may_enter_directory(context, _effective_permissions()):
+			current_path.append(component)
+
+			if not self._may_execute(context, _effective_permissions()):
 				return current, current_path, _effective_permissions(), f'permission to enter {current_path} is denied'
 
 			entry = current.get(component)
@@ -349,9 +363,31 @@ class AssetStore(AssetStoreBase):
 		return current, current_path, _effective_permissions(), None
 
 	@staticmethod
-	def _directory_to_json(node, permissions):
-		contents = [f for f in node if f != '']
+	def _permissions_for_node(inherited_permission, node):
+		if isinstance(node, MutableMapping) and '' in node:
+			return node['']
+		elif isinstance(node, IPermissionProvider):
+			return node.get_permissions()
+		else:
+			return inherited_permission
+
+	@staticmethod
+	def _directory_to_json(path, node, permissions):
+		def _entry_for_node(_entry_name):
+			_entry = node[_entry_name]
+			_permissions = AssetStore._permissions_for_node(permissions, _entry)
+			_result = {
+				'name': _entry_name,
+				'rights': _permissions.short_repr().split()[0],
+				'user': _permissions.user_name,
+				'group': _permissions.group_name,
+				'dir': isinstance(_entry, MutableMapping)
+			}
+			return _result
+
+		contents = [_entry_for_node(f) for f in sorted(node) if f != '']
 		result = {
+			'path': str(path) if len(path) > 0 else '',
 			'permissions': permissions,
 			'contents': contents
 		}
@@ -374,15 +410,31 @@ class AssetStore(AssetStoreBase):
 		if not self._may_read_directory(context, node_permissions):
 			raise PermissionError('read access denied')
 
-		return AssetStore._directory_to_json(node, node_permissions)
+		return AssetStore._directory_to_json(path, node, node_permissions)
 
 	def _acquire_by_path(self, context: UpdateContext, path: TreePath | str, default):
+		def _acquire_active_asset():
+			has_inner_args = len(path) > len(node_path)
+			if not has_inner_args:
+				return node.get_asset(context)
+
+			permissions = node.get_permissions()
+			if permissions is None:
+				permissions = path_permissions
+			if not self._may_execute(context, permissions):
+				raise PermissionError(f'permission to execute denied: {path}')
+
+			the_asset = node.get_asset(context)
+			cloned_asset = the_asset.clone()
+			cloned_asset.action_args['_inner_get'] = tree_path[len(node_path):]
+			return cloned_asset
+
 		tree_path = TreePath(path)
 		# do not accept array indices in path
 		if not AssetStore._valid_store_path(str(tree_path)):
 			return default_or_raise(default, f'invalid path: "{path}"')
 
-		node, node_path, _, error = self._get_node(context, tree_path)
+		node, node_path, path_permissions, error = self._get_node(context, tree_path)
 		if error:
 			return default_or_raise(default, error)
 
@@ -391,6 +443,9 @@ class AssetStore(AssetStoreBase):
 			return Asset(ReadDir(), path=str(path))
 		elif isinstance(node, int):
 			return self._acquire_by_id(context, asset_id=node, default=default)
+		elif isinstance(node, ActiveAsset):
+			return _acquire_active_asset()
+
 		else:
 			pass
 
@@ -405,7 +460,7 @@ class AssetStore(AssetStoreBase):
 		else:
 			raise ValueError('acquire() called without path or asset id')
 
-	def _set_node(self, context: UpdateContext, path: TreePath, value, mode=None):
+	def _set_node(self, context: UpdateContext, path: TreePath, value):
 		def _effective_permissions():
 			nonlocal current_permissions, last_permissions
 			return current_permissions if current_permissions else last_permissions
@@ -432,7 +487,7 @@ class AssetStore(AssetStoreBase):
 
 			current_permissions = node.get('') if node_is_directory else _permissions_for_entry()
 			if node_is_directory:
-				if not self._may_enter_directory(context, _effective_permissions()):
+				if not self._may_execute(context, _effective_permissions()):
 					raise PermissionError(f'not allowed to enter {str(container_path)}')
 			else:
 				_handover_write_to_node()
@@ -492,7 +547,7 @@ class AssetStore(AssetStoreBase):
 			mode=mode
 		)
 
-	def store(self, context: UpdateContext, asset: Asset, path=None, accept_inner_access=False, mode=None):
+	def store(self, context: UpdateContext, asset: Asset, path=None, accept_inner_access=None, mode=None):
 		# ensure asset has an ID and save to storage
 		if asset.get_id() == -1:
 			asset.set_id(self._get_next_id())
@@ -504,10 +559,22 @@ class AssetStore(AssetStoreBase):
 		self.storage.save(asset, context)
 
 		# with no path, the asset was just saved -- with path, insert it into the tree:
-		if path:
-			self._set_node(context, path, asset.get_id(), mode=mode)
-			self.asset_by_id_cache[asset.get_id()] = asset
+		if path is None:
+			return
 
+		if accept_inner_access is not False and asset.action.accepts_inner_access():
+			# store as active asset
+			permissions = None if mode is None else UnixPermissions.make_permission(
+				context.get_user_registry(),
+				context.get_user(),
+				context.get_group(),
+				mode=mode
+			)
+			active_reference = ActiveAsset(asset_id=asset.get_id(), permissions=permissions)
+			self._set_node(context, path, active_reference)
+		else:
+			self._set_node(context, path, asset.get_id())
+			self.asset_by_id_cache[asset.get_id()] = asset
 		pass
 
 	def remove(self, context: UpdateContext, path:str|TreePath):
@@ -521,7 +588,6 @@ class AssetStore(AssetStoreBase):
 			raise PermissionError(error)
 
 		raise Exception('work in progress')
-
 
 	def mkdir(self, context: UpdateContext, path, mode=None):
 		tree_path = TreePath(path)
@@ -580,6 +646,8 @@ if __name__ == '__main__':
 		)
 
 		read_dir_asset = Asset(ReadDir())
+		store.store(context, read_dir_asset, path='bin.ls', mode=0o754)
+
 		test_asset = Asset(
 			TestDispatchedAction(), permissions=UnixPermissions('root', 'system', mode='775')
 			# TestAction(), permissions=UnixPermissions('root', 'system', mode='775')
@@ -598,7 +666,7 @@ if __name__ == '__main__':
 			'775'
 		)
 
-		update_result = update_asset.update(context, path_to_asset='test.test2', asset_description=request)
+		update_result = update_asset.update(context, path_to_asset='bin.reload', asset_description=request)
 		test2_acquired = store.acquire(context, path='test.test2')
 		test2_result = test2_acquired.update(context)
 
@@ -626,8 +694,6 @@ if __name__ == '__main__':
 			pass
 		except Exception as ex:
 			print(str(ex))
-
-		store.store(context, read_dir_asset, path='bin.ls', mode=0o754)
 
 		store.save()
 		pass

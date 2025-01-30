@@ -1,5 +1,6 @@
 from lib.store.asset import Asset
 from lib.store.update_context import UpdateContext
+from lib.store.unix_permissions import UnixPermissions
 
 
 class ActionRegistry:
@@ -16,6 +17,7 @@ class ActionRegistry:
 		"""
 		cls_name = f"{class_obj.__module__}.{class_obj.__name__}"
 		kwargs['class'] = class_obj
+		kwargs['inited'] = False
 		cls._registry[cls_name] = kwargs
 		print(f"Registered class: {cls_name} with metadata: {kwargs}")
 
@@ -40,10 +42,19 @@ class ActionRegistry:
 		return wrapper
 
 	@classmethod
-	def create_registered_actions(cls, context):
+	def create_registered_actions(cls, context: UpdateContext, force_update=False):
 		for entry in cls._registry.values():
+			if entry['inited'] and not force_update:
+				continue
 			the_class = entry['class']
 			asset_args = entry.get('asset_args', {})
+			asset_permissions = UnixPermissions.make_permission(
+				context.get_user_registry(),
+				entry['user'],
+				entry['group'],
+				entry['mode']
+			)
+			asset_args['permissions'] = asset_permissions
 			action_args = entry.get('action_args', {})
 			the_asset = Asset(the_class(**action_args), **asset_args)
 			asset_context = context.copy()
@@ -51,5 +62,7 @@ class ActionRegistry:
 				asset_context[arg] = entry[arg]
 			asset_context['identity'] = [(entry['user'], entry['group'])]
 			context.store.store(asset_context, the_asset, path=entry['path'], mode=entry['mode'])
+
+			entry['inited'] = True
 
 		pass

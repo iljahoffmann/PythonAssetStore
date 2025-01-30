@@ -86,6 +86,12 @@ class Asset(BasicPersistentObject, IPermissionProvider):
                 'asset_help': self.asset_help,
             }
 
+    def get_help(self):
+        if self.asset_help:
+            return self.asset_help
+        else:
+            return self.action.get_help()
+
     def get_permissions(self) -> "UnixPermissions":
         if self.permissions is None:
             raise ValueError("Asset is not completely initialized: permissions are missing")
@@ -187,10 +193,11 @@ class Asset(BasicPersistentObject, IPermissionProvider):
                 build_result = self.build_result,
                 # build_error = self.build_error,
                 creation_date = self.creation_date,
-                last_modification = self.last_modification,
+                last_modification = datetime.now(),
                 last_build = self.last_build,
                 dependencies = self.dependencies.copy() if self.dependencies else [],
-                asset_help = self.asset_help.copy() if self.asset_help else None
+                asset_help = self.asset_help.copy() if self.asset_help else None,
+                permissions=self.permissions
             )
             return cloned
 

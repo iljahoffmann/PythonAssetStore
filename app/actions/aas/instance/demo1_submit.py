@@ -169,7 +169,7 @@ class InstanceDemoStep1(StatelessAction):
 		collector = TraverseDict(self._is_carbon_entry, _add_to_total)
 		collector.accept(current_model)
 
-		page = context.store.query(context, 'www.files', file='instance_demo/finalize.html').get_result()
+		page = context.store.query(context, 'www.files', file='instance_demo/finalize.html')
 		if page.is_error():
 			return page
 		result = apply_replacements(
@@ -205,7 +205,7 @@ class InstanceDemoStep1(StatelessAction):
 
 		phase_name = self.phases[phase_number]
 
-		page = context.store.query(context, 'www.files', file='instance_demo/process_step.html').get_result()
+		page = context.store.query(context, 'www.files', file='instance_demo/process_step.html')
 		if page.is_error():
 			return page
 		result = apply_replacements(
