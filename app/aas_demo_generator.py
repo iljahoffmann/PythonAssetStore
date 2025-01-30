@@ -73,15 +73,17 @@ def replace_serial_number(env: aas_core3.types.Environment, product_id: str, ser
     # 2.
     if type == "internal":
         # aas.id = f"http://deopp-aasinst-01/{product_id}/aas/0/0/{serial_number}"
-        aas.id = f"http://deopp-aasinst-01/{product_id}/aas/1/0/{serial_number}"
+        # aas.id = f"http://deopp-aasinst-01/{product_id}/aas/1/0/{serial_number}"
+        aas.id = f"https://aas.intern.murrleketronik.com/{product_id}/aas/1/0/{serial_number}"  # <---- changed
     else:
         aas.id = f"https://aas.murrelektronik.com/{product_id}/aas/1/0/{serial_number}"
 
     # 3.
-    if type == "internal":
-        aas.asset_information.global_asset_id = f"http://deopp-aasinst-01/{product_id}/{serial_number}"
-    else:
-        aas.asset_information.global_asset_id = f"https://aas.murrelektronik.com/{product_id}/{serial_number}" 
+    # if type == "internal":
+    #     aas.asset_information.global_asset_id = f"http://deopp-aasinst-01/{product_id}/{serial_number}"
+    # else:
+    #     aas.asset_information.global_asset_id = f"https://aas.murrelektronik.com/{product_id}/{serial_number}"
+    aas.asset_information.global_asset_id = f"https://aas.murrelektronik.com/{product_id}/{serial_number}"       #
 
     # 5.
 
