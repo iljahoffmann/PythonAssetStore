@@ -188,7 +188,7 @@ if __name__ == '__main__':
 	def main():
 		global std_context
 		std_context = store_setup()
-		# create_basic_assets()
+		create_basic_assets()
 		#  app.run('0.0.0.0', 5001, debug=True)
 		app.run('0.0.0.0', 5001)
 
